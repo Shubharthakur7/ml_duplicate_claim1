@@ -20,32 +20,52 @@ ml_duplicate_claim1/
     └── server.py           # FastAPI server
 ```
 
-## Setup
+## Setup on a New System
 
-Install dependencies:
+**Requirements:** Python 3.9+
 
-<!-- python3 -m venv venv
-source venv/bin/activate
-pip install fastapi uvicorn sentence-transformers scikit-learn pandas numpy -->
+### 1. Clone the repo
 
 ```bash
-pip install fastapi uvicorn sentence-transformers scikit-learn pandas numpy
+git clone <repo-url>
+cd ml_duplicate_claim1
 ```
 
-## Running
+### 2. Create a virtual environment
 
-### Step 1 — Generate embeddings
+**Mac / Linux**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
 
-Run this once (or whenever `claims.csv` changes):
+**Windows**
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+> First run downloads the `all-MiniLM-L6-v2` model (~90 MB). This is automatic.
+
+### 4. Generate embeddings
+
+Run once (or any time `claims.csv` changes):
 
 ```bash
 cd model
 python train_model.py
+cd ..
 ```
 
 This creates `model/claims_embeddings.npy`.
 
-### Step 2 — Start the API server
+### 5. Start the API server
 
 ```bash
 cd api
