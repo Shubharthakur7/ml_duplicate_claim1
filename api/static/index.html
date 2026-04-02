@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Duplicate Claim Detector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      padding: 32px 24px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #333;
+    }
+
+    /* Claims table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 10px 12px;
+      background: #f7f8fa;
+      border-bottom: 2px solid #e5e7eb;
+      font-weight: 600;
+      color: #555;
+    }
+
+    tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.15s; }
+    tbody tr:hover { background: #fafbff; }
+
+    tbody td {
+      padding: 10px 12px;
+      vertical-align: top;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-gray  { background: #f0f0f0; color: #555; }
+    .badge-blue  { background: #e0eaff; color: #3b5bdb; }
+    .badge-green { background: #d3f9d8; color: #2f9e44; }
+    .badge-red   { background: #ffe3e3; color: #c92a2a; }
+
+    /* Check panel */
+    .check-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 700px) { .check-grid { grid-template-columns: 1fr; } }
+
+    .check-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .check-item label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+
+    .check-item textarea {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.875rem;
+      resize: vertical;
+      min-height: 72px;
+      font-family: inherit;
+      color: #333;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .check-item textarea:focus { border-color: #748ffc; }
+
+    .btn {
+      margin-top: 10px;
+      width: 100%;
+      padding: 9px;
+      border: none;
+      border-radius: 8px;
+      background: #4263eb;
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn:hover { background: #3b5bdb; }
+    .btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    .result-box {
+      margin-top: 12px;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.83rem;
+      display: none;
+    }
+
+    .result-box.duplicate  { background: #ffe3e3; border: 1px solid #ffc9c9; }
+    .result-box.original   { background: #d3f9d8; border: 1px solid #b2f2bb; }
+
+    .result-box .score {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .result-box .match-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .result-box .match-desc { color: #555; }
+
+    .loading { color: #888; font-size: 0.83rem; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Duplicate Claim Detector</h1>
+<p class="subtitle">Semantic similarity using sentence-transformers · threshold 0.75</p>
+
+<!-- All Claims Table -->
+<div class="card">
+  <h2>All Claims</h2>
+  <table id="claims-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Title</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody id="claims-body">
+      <tr><td colspan="3" style="padding:16px;color:#aaa;text-align:center;">Loading…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Check Duplicates -->
+<div class="card">
+  <h2>Check Duplicate Claims</h2>
+  <div class="check-grid">
+
+    <!-- Claim 6 -->
+    <div class="check-item">
+      <label>Claim 6 — Highway Crash (duplicate of #1)</label>
+      <textarea id="text1">My car was hit on the highway causing damage to the front bumper and I sustained minor injuries</textarea>
+      <button class="btn" onclick="checkDuplicate(1)">Check</button>
+      <div class="result-box" id="result1"></div>
+    </div>
+
+    <!-- Claim 7 -->
+    <div class="check-item">
+      <label>Claim 7 — Rain Water Damage (duplicate of #3)</label>
+      <textarea id="text2">Heavy rain flooded our basement and ruined all the furniture and home appliances</textarea>
+      <button class="btn" onclick="checkDuplicate(2)">Check</button>
+      <div class="result-box" id="result2"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const API = "http://localhost:8000";
+
+  async function loadClaims() {
+    const res = await fetch(`${API}/claims`);
+    const claims = await res.json();
+    const tbody = document.getElementById("claims-body");
+    tbody.innerHTML = "";
+    claims.forEach(c => {
+      const isDuplicate = c.id >= 6;
+      tbody.innerHTML += `
+        <tr>
+          <td><span class="badge ${isDuplicate ? "badge-blue" : "badge-gray"}">${c.id}</span></td>
+          <td>
+            ${c.title}
+            ${isDuplicate ? '<span class="badge badge-blue" style="margin-left:6px">new</span>' : ""}
+          </td>
+          <td style="color:#555">${c.description}</td>
+        </tr>`;
+    });
+  }
+
+  async function checkDuplicate(n) {
+    const text = document.getElementById(`text${n}`).value.trim();
+    const resultEl = document.getElementById(`result${n}`);
+    const btn = document.querySelectorAll(".btn")[n - 1];
+
+    if (!text) return;
+
+    btn.disabled = true;
+    btn.textContent = "Checking…";
+    resultEl.style.display = "none";
+
+    try {
+      const res = await fetch(`${API}/check?text=${encodeURIComponent(text)}`);
+      const data = await res.json();
+
+      if (data.is_duplicate) {
+        resultEl.className = "result-box duplicate";
+        resultEl.innerHTML = `
+          <div class="score">Duplicate detected · ${(data.similarity_score * 100).toFixed(1)}% match</div>
+          <div class="match-title">Matched: #${data.matched_claim.id} — ${data.matched_claim.title}</div>
+          <div class="match-desc">${data.matched_claim.description}</div>`;
+      } else {
+        resultEl.className = "result-box original";
+        resultEl.innerHTML = `
+          <div class="score">Not a duplicate · ${(data.similarity_score * 100).toFixed(1)}% best match</div>
+          <div class="match-desc">This claim appears to be original.</div>`;
+      }
+      resultEl.style.display = "block";
+    } catch (e) {
+      resultEl.className = "result-box";
+      resultEl.style.background = "#fff3cd";
+      resultEl.style.display = "block";
+      resultEl.textContent = "Could not reach API. Make sure the server is running.";
+    }
+
+    btn.disabled = false;
+    btn.textContent = "Check";
+  }
+
+  loadClaims();
+</script>
+</body>
+</html>

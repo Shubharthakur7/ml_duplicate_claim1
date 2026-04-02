@@ -1,1 +1,122 @@
-# ml_duplicate_claim1
+# ML Duplicate Claim Detector
+
+A FastAPI service that detects duplicate insurance claims using sentence embeddings and cosine similarity.
+
+## How It Works
+
+1. Claims are encoded into vector embeddings using `sentence-transformers` (`all-MiniLM-L6-v2`)
+2. When a new claim is submitted, its embedding is compared against all existing claims
+3. If cosine similarity exceeds 0.75, the claim is flagged as a duplicate
+
+## Project Structure
+
+```
+ml_duplicate_claim1/
+├── data/
+│   └── claims.csv          # Source claims dataset
+├── model/
+│   └── train_model.py      # Generates embeddings from claims.csv
+└── api/
+    └── server.py           # FastAPI server
+```
+
+## Setup
+
+Install dependencies:
+
+<!-- python3 -m venv venv
+source venv/bin/activate
+pip install fastapi uvicorn sentence-transformers scikit-learn pandas numpy -->
+
+```bash
+pip install fastapi uvicorn sentence-transformers scikit-learn pandas numpy
+```
+
+## Running
+
+### Step 1 — Generate embeddings
+
+Run this once (or whenever `claims.csv` changes):
+
+```bash
+cd model
+python train_model.py
+```
+
+This creates `model/claims_embeddings.npy`.
+
+### Step 2 — Start the API server
+
+```bash
+cd api
+uvicorn server:app --reload
+```
+
+The server starts at `http://localhost:8000`.
+
+## API Endpoints
+
+### `GET /check?text=<claim text>`
+
+Check if a claim is a duplicate.
+
+#### Example 1 — Duplicate of Claim 1 (Car Accident)
+
+Claim 6 in `claims.csv` is a paraphrase of Claim 1. To verify:
+
+```bash
+curl "http://localhost:8000/check?text=My+car+was+hit+on+the+highway+causing+damage+to+the+front+bumper+and+I+sustained+minor+injuries"
+```
+
+**Response:**
+```json
+{
+  "is_duplicate": true,
+  "similarity_score": 0.8004,
+  "matched_claim": {
+    "id": 1,
+    "title": "Car Accident",
+    "description": "Vehicle collision on highway resulting in front bumper damage and minor injuries"
+  }
+}
+```
+
+#### Example 2 — Duplicate of Claim 3 (Flood Damage)
+
+Claim 7 in `claims.csv` is a paraphrase of Claim 3. To verify:
+
+```bash
+curl "http://localhost:8000/check?text=Heavy+rain+flooded+our+basement+and+ruined+all+the+furniture+and+home+appliances"
+```
+
+**Response:**
+```json
+{
+  "is_duplicate": true,
+  "similarity_score": 0.906,
+  "matched_claim": {
+    "id": 3,
+    "title": "Flood Damage",
+    "description": "Heavy rainfall caused basement flooding destroying furniture and appliances"
+  }
+}
+```
+
+### `GET /claims`
+
+List all claims in the database.
+
+### `GET /health`
+
+Health check — returns status and total claim count.
+
+## UI
+
+Once the server is running, open `http://localhost:8000` to use the web interface:
+
+- **Claims table** — lists all claims, with new ones highlighted
+- **Check panel** — pre-filled with Claim 6 and Claim 7; click **Check** on each to see duplicate detection results live
+
+## Interactive Docs
+
+Once the server is running, visit `http://localhost:8000/docs` for the auto-generated Swagger UI.
